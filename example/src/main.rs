@@ -6,10 +6,11 @@ use strander::rand::distr::Distribution;
 #[derive(Debug, Strand)]
 pub struct Foo {
     bar: String,
+    #[strand = "Alphabetic"]
     baz: u8,
 }
 
 fn main() {
-    let foogen = Foo::strand().with_baz(Alphabetic);
+    let foogen = Foo::strand();
     println!("Hello, {:?}!", foogen.sample(&mut rand::rng()));
 }

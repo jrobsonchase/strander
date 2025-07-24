@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
-use syn::Data;
+use syn::{Data, Expr, Lit, Meta, MetaNameValue};
 
-use quote::{format_ident, quote};
+use quote::{ToTokens, format_ident, quote};
 
 // TODO: field attrs to control default distributions
 // TODO: struct attrs to control generated trait/struct names
@@ -10,7 +10,7 @@ use quote::{format_ident, quote};
 // TODO: enums?
 // TODO: tuple structs?
 
-#[proc_macro_derive(Strand)]
+#[proc_macro_derive(Strand, attributes(strand))]
 pub fn derive_strand(item: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(item as syn::DeriveInput);
 
@@ -56,7 +56,20 @@ pub fn derive_strand(item: TokenStream) -> TokenStream {
                         #other_fields
                     }
                 }});
-                distr_field_constructors.extend(quote! { #field_name: <#field_type as ::strander::Strand>::strand(), });
+                let mut constructor = quote! { <#field_type as ::strander::Strand>::strand() };
+                for attr in field.attrs.iter().map(|a| &a.meta) {
+                    match attr {
+                        Meta::NameValue(MetaNameValue{ value, .. }) => {
+                            if let Expr::Lit(expr) = &value {
+                                if let Lit::Str(lit_str) = &expr.lit {
+                                    constructor = lit_str.parse::<Expr>().expect("a valid rust expression").into_token_stream();
+                                }
+                            }
+                        },
+                        other => panic!("unsupported attribute: {:?}", other),
+                    }
+                }
+                distr_field_constructors.extend(quote! { #field_name: #constructor, });
                 distr_field_samplers.extend(quote! { #field_name: <#field_param as #field_trait>::sample(&self.#field_name, rng), })
 
             }
@@ -72,6 +85,7 @@ pub fn derive_strand(item: TokenStream) -> TokenStream {
 
                 mod __strand_impl {
                     #![allow(refining_impl_trait)]
+                    use super::*;
                     use ::strander::rand::distr::Distribution;
                     use ::strander::rand::Rng;
 
