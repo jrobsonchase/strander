@@ -4,7 +4,7 @@ use strander::rand::distr::Alphabetic;
 use strander::rand::distr::Distribution;
 
 #[derive(Debug, Strand)]
-struct Foo {
+pub struct Foo {
     bar: String,
     baz: u8,
 }

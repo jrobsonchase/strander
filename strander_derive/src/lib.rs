@@ -56,8 +56,8 @@ pub fn derive_strand(item: TokenStream) -> TokenStream {
                         #other_fields
                     }
                 }});
-                distr_field_constructors.extend(quote! { #field_name: #field_type ::strand(), });
-                distr_field_samplers.extend(quote! { #field_name: self.#field_name.sample(rng), })
+                distr_field_constructors.extend(quote! { #field_name: <#field_type as ::strander::Strand>::strand(), });
+                distr_field_samplers.extend(quote! { #field_name: <#field_param as #field_trait>::sample(&self.#field_name, rng), })
 
             }
 
