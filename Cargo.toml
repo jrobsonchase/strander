@@ -1,5 +1,5 @@
 [workspace]
-members = [ "example",
+members = [ "example", "example-remote/bar", "example-remote/foo",
     "strander",
     "strander_core",
     "strander_derive",

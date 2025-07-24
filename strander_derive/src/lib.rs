@@ -12,15 +12,21 @@ use quote::{ToTokens, format_ident, quote};
 
 #[proc_macro_derive(Strand, attributes(strand))]
 pub fn derive_strand(item: TokenStream) -> TokenStream {
+    derive_strand_impl(item, true)
+}
+
+fn derive_strand_impl(item: TokenStream, impl_strand: bool) -> TokenStream {
     let input = syn::parse_macro_input!(item as syn::DeriveInput);
 
-    let struct_identifier = &input.ident;
-    let distr_trait = format_ident!("{}Distribution", struct_identifier);
-    let distr_struct = format_ident!("{}Distr", struct_identifier);
+    let struct_name = &input.ident;
+    let vis = &input.vis;
+    let distr_trait = format_ident!("{}Distribution", struct_name);
+    let distr_struct = format_ident!("{}Distr", struct_name);
 
     match &input.data {
         Data::Struct(syn::DataStruct { fields, .. }) => {
             let mut distr_generics = quote! {};
+            let mut distr_generic_defaults = quote! {};
             let mut distr_where_clause = quote! {
                 where
             };
@@ -46,6 +52,7 @@ pub fn derive_strand(item: TokenStream) -> TokenStream {
                 }
 
                 distr_generics.extend(quote! { #field_param , });
+                distr_generic_defaults.extend(quote! { #field_param = (), });
                 distr_struct_fields.extend(quote! { #field_name: #field_param, });
                 distr_where_clause.extend(quote! { #field_param : #field_trait , });
 
@@ -74,51 +81,63 @@ pub fn derive_strand(item: TokenStream) -> TokenStream {
 
             }
 
+            let mut strand_impl = quote!{};
+            if impl_strand {
+                strand_impl = quote! {
+                    #[allow(refining_impl_trait)]
+                    impl ::strander::Strand for #struct_name {
+                        fn strand() -> impl #distr_trait {
+                            #distr_struct::new()
+                        }
+                    }
+                }
+            };
+
             quote! {
-                pub trait #distr_trait: ::strander::rand::distr::Distribution<#struct_identifier> {
+                #vis trait #distr_trait: ::strander::rand::distr::Distribution<#struct_name> {
                     #distr_trait_method_defs
                 }
 
-                pub struct #distr_struct <#distr_generics> {
+                #vis struct #distr_struct <#distr_generic_defaults> {
                     #distr_struct_fields
                 }
 
-                mod __strand_impl {
-                    #![allow(refining_impl_trait)]
-                    use super::*;
-                    use ::strander::rand::distr::Distribution;
-                    use ::strander::rand::Rng;
-
-                    use super::*;
-                    impl<#distr_generics> Distribution<#struct_identifier> for #distr_struct <#distr_generics>
-                        #distr_where_clause
-                    {
-                        fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> #struct_identifier {
-                            #struct_identifier {
-                                #distr_field_samplers
-                            }
-                        }
-                    }
-
-                    impl<#distr_generics> #distr_trait for #distr_struct <#distr_generics>
-                        #distr_where_clause
-                    {
-                        #distr_trait_method_impls
-                    }
-
-                    impl ::strander::Strand for #struct_identifier {
-                        fn strand() -> impl #distr_trait {
-                            #distr_struct {
-                                #distr_field_constructors
-                            }
+                impl<#distr_generics> ::strander::rand::distr::Distribution<#struct_name> for #distr_struct <#distr_generics>
+                    #distr_where_clause
+                {
+                    fn sample<R: ::strander::rand::Rng + ?Sized>(&self, rng: &mut R) -> #struct_name {
+                        use ::strander::rand::distr::Distribution;
+                        #struct_name {
+                            #distr_field_samplers
                         }
                     }
                 }
+
+                impl<#distr_generics> #distr_trait for #distr_struct <#distr_generics>
+                    #distr_where_clause
+                {
+                    #distr_trait_method_impls
+                }
+
+                impl #distr_struct {
+                    pub fn new() -> impl #distr_trait {
+                        #distr_struct {
+                            #distr_field_constructors
+                        }
+                    }
+                }
+
+                #strand_impl
             }
         }
         _ => unimplemented!(),
     }
     .into()
+}
+
+#[proc_macro_attribute]
+pub fn strand_remote(_args: TokenStream, item: TokenStream) -> TokenStream {
+    derive_strand_impl(item, false)
 }
 
 #[cfg(test)]

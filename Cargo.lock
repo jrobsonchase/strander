@@ -3,6 +3,10 @@
 version = 4
 
 [[package]]
+name = "bar"
+version = "0.1.0"
+
+[[package]]
 name = "bitflags"
 version = "2.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -18,6 +22,14 @@ checksum = "9555578bc9e57714c812a1f84e4fc5b4d21fcb063490c624de019f7464c91268"
 name = "example"
 version = "0.1.0"
 dependencies = [
+ "strander",
+]
+
+[[package]]
+name = "foo"
+version = "0.1.0"
+dependencies = [
+ "bar",
  "strander",
 ]
 
