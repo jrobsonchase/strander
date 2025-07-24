@@ -1,0 +1,13 @@
+[workspace]
+members = [ "example",
+    "strander",
+    "strander_core",
+    "strander_derive",
+]
+resolver = "3"
+
+[workspace.dependencies]
+strander = { path = "./strander" }
+strander_derive = { path = "./strander_derive" }
+strander_core = { path = "./strander_core" }
+rand = "0.9"
