@@ -3,6 +3,13 @@ use syn::Data;
 
 use quote::{format_ident, quote};
 
+// TODO: field attrs to control default distributions
+// TODO: struct attrs to control generated trait/struct names
+// TODO: visibility
+// TODO: input generics
+// TODO: enums?
+// TODO: tuple structs?
+
 #[proc_macro_derive(Strand)]
 pub fn derive_strand(item: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(item as syn::DeriveInput);
@@ -55,11 +62,11 @@ pub fn derive_strand(item: TokenStream) -> TokenStream {
             }
 
             quote! {
-                trait #distr_trait: ::strander::rand::distr::Distribution<#struct_identifier> {
+                pub trait #distr_trait: ::strander::rand::distr::Distribution<#struct_identifier> {
                     #distr_trait_method_defs
                 }
 
-                struct #distr_struct <#distr_generics> {
+                pub struct #distr_struct <#distr_generics> {
                     #distr_struct_fields
                 }
 
